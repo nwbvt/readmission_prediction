@@ -1,10 +1,61 @@
 import pandas as pd
 import argparse
 from sklearn.model_selection import train_test_split
+from torch.utils.data import Dataset
+from torch import tensor
+import torch
+import numpy as np
+from collections import Counter
+from torch.nn.utils.rnn import pad_sequence
 
 NOTE_FILE="data/NOTEEVENTS.csv"
 ADMISSION_FILE="data/ADMISSIONS.csv"
 OUTLOC="data"
+    
+class MIMICNotes(Dataset):
+    """Dataset for mimic notes"""
+    
+    def __init__(self, data, readmit_cutoff = 30, encoding=None, vocab=None):
+        assert encoding or vocab
+        self.data = data
+        self.encoding = encoding or one_hot_encoder(vocab)
+        self.labels = data.DAYS_TO_READMIT < readmit_cutoff
+    
+    def __len__(self):
+        return len(self.data)
+    
+    def __getitem__(self, index):
+        datum = self.data.iloc[index].TEXT
+        text = datum.split()
+        encoded = np.array([self.encoding(word) for word in text])
+        label = self.labels.iloc[index]
+        return tensor(encoded, dtype=torch.long), tensor(label, dtype=torch.float)
+
+def load_dataset(filename=f"{OUTLOC}/train.csv", df=None, readmit_cutoff=30, encoding=None, vocab=None, vocab_size=1000, sample=1):
+    df = df or pd.read_csv(filename)
+    if sample < 1:
+        df = df.sample(frac=sample)
+    if encoding is None and vocab is None:
+        vocab = get_vocab(df.TEXT, vocab_size)
+    return MIMICNotes(df, readmit_cutoff, encoding, vocab)
+
+def get_vocab(text_data, vocab_size=1000):
+    split = text_data.str.split()
+    vocab = Counter([word.lower() for line in split for word in line])
+    words = vocab.most_common(vocab_size)
+    return {word: i for i, (word, count) in enumerate(words)}
+
+def one_hot_encoder(vocab):
+    n = len(vocab)
+    def encode(x):
+        return vocab.get(x, n)
+    return encode
+
+def collate(data):
+    x,y = zip(*data)
+    x = pad_sequence(x, batch_first=True)
+    y = torch.stack(y)
+    return x, y
 
 def load_discharges(notes_file=NOTE_FILE):
     notes = pd.read_csv(notes_file)
