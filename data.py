@@ -27,7 +27,8 @@ class MIMICNotes(Dataset):
     def __getitem__(self, index):
         datum = self.data.iloc[index].TEXT
         text = datum.split()
-        encoded = np.array([self.encoding(word) for word in text])
+        encoded = [self.encoding(word) for word in text]
+        encoded = np.array([w for w in encoded if w is not None])
         label = self.labels.iloc[index]
         return tensor(encoded, dtype=torch.long), tensor(label, dtype=torch.float)
 

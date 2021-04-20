@@ -9,14 +9,18 @@ import time
 
 class ConvAttModel(nn.Module):
     
-    def __init__(self, vocab_size=1000, kernel_size=10, num_filter_maps=16, embed_size=100, dropout=0.5):
+    def __init__(self, vocab_size=1000, kernel_size=10, num_filter_maps=16, embed_size=100, dropout=0.5, embedding=None):
         super(ConvAttModel, self).__init__()
         self.embed_size = embed_size
         self.embed_drop = nn.Dropout(p=dropout)
         
         # embedding
-        self.embed = nn.Embedding(vocab_size+1, embed_size)
-        xavier_uniform_(self.embed.weight)
+        if embedding is None:
+            self.embed = nn.Embedding(vocab_size+1, embed_size)
+            xavier_uniform_(self.embed.weight)
+        else:
+            embedding_tensor = torch.FloatTensor(embedding)
+            self.embed = nn.Embedding.from_pretrained(embedding_tensor)
         
         # conv layer
         self.conv = nn.Conv1d(self.embed_size, num_filter_maps, kernel_size, padding=int(floor(kernel_size/2)))
