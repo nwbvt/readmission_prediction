@@ -7,25 +7,33 @@ import torch
 import numpy as np
 from collections import Counter
 from torch.nn.utils.rnn import pad_sequence
+import re
 
 NOTE_FILE="data/NOTEEVENTS.csv"
 ADMISSION_FILE="data/ADMISSIONS.csv"
 OUTLOC="data"
-    
+
+NON_CHARS = re.compile("[^a-z0-9]+")
+
+def clean(line):
+    line = line.lower()
+    line = NON_CHARS.sub(' ', line)
+    return line
+
 class MIMICNotes(Dataset):
     """Dataset for mimic notes"""
     
     def __init__(self, data, readmit_cutoff = 30, encoding=None, vocab=None):
         assert encoding or vocab
         self.data = data
-        self.encoding = encoding or one_hot_encoder(vocab)
+        self.encoding = encoding or vocab.get
         self.labels = data.DAYS_TO_READMIT < readmit_cutoff
     
     def __len__(self):
         return len(self.data)
     
     def __getitem__(self, index):
-        datum = self.data.iloc[index].TEXT
+        datum = clean(self.data.iloc[index].TEXT)
         text = datum.split()
         encoded = [self.encoding(word) for word in text]
         encoded = np.array([w for w in encoded if w is not None])
