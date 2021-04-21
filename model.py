@@ -46,11 +46,13 @@ class ConvAttModel(nn.Module):
         return y, attention
         
         
-def eval(model, data):
+def eval(model, data, max_batches=0):
     model.eval()
     y_pred = torch.LongTensor()
     y_true = torch.LongTensor()
-    for x, y in data:
+    for i, (x, y) in enumerate(data):
+        if max_batches > 0 and i > max_batches:
+            break
         y_hat, attention = model(x)
         y_pred = torch.cat((y_pred, y_hat.detach().to('cpu')), dim=0)
         y_true = torch.cat((y_true, y.detach().to('cpu')), dim=0)
@@ -64,7 +66,8 @@ def train(model, train_data, test_data, n_epochs):
         start_time = time.time()
         model.train()
         train_loss = 0
-        for x, y in train_data:
+        for i, (x, y) in enumerate(train_data):
+            print(f"{i}/{len(train_data)}", end="\r")
             optimizer.zero_grad()
             y_hat, attention = model(x)
             loss = criterion(y_hat, y)
@@ -72,8 +75,10 @@ def train(model, train_data, test_data, n_epochs):
             optimizer.step()
             train_loss += loss.item()
         train_loss = train_loss/len(train_data)
-        train_aps = eval(model, train_data)
-        test_aps = eval(model, test_data)
+        print("Calculating train metrics", end="\r")
+        train_aps = eval(model, train_data, len(test_data))
+        print("Calculating test metrics ", end="\r")
+        test_aps = eval(model, test_data, len(test_data))
         end_time = time.time()
         print(f"Epoch {epoch}\tTraining Loss: {train_loss:.6f}" + 
               f"\tTrain APS: {train_aps:.6f}\tTest APS: {test_aps:.6f}" +

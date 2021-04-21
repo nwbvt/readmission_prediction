@@ -40,13 +40,18 @@ class MIMICNotes(Dataset):
         label = self.labels.iloc[index]
         return tensor(encoded, dtype=torch.long), tensor(label, dtype=torch.float)
 
-def load_dataset(filename=f"{OUTLOC}/train.csv", df=None, readmit_cutoff=30, encoding=None, vocab=None, vocab_size=1000, sample=1):
+def load_dataset(filename=f"{OUTLOC}/train.csv", df=None, readmit_cutoff=30,
+                 encoding=None, vocab=None, vocab_size=1000, sample=1, split=None, random_state=19820618):
     df = df or pd.read_csv(filename)
     if sample < 1:
         df = df.sample(frac=sample)
     if encoding is None and vocab is None:
         vocab = get_vocab(df.TEXT, vocab_size)
-    return MIMICNotes(df, readmit_cutoff, encoding, vocab)
+    if split is not None:
+        train, test = train_test_split(df, test_size=split, random_state=random_state)
+        return MIMICNotes(train, readmit_cutoff, encoding, vocab), MIMICNotes(test, readmit_cutoff, encoding, vocab)
+    else:
+        return MIMICNotes(df, readmit_cutoff, encoding, vocab)
 
 def get_vocab(text_data, vocab_size=1000):
     split = text_data.str.split()
