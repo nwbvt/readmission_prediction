@@ -1,5 +1,5 @@
 '''
-	main.py
+	embedding_main.py
 
 	This is a simple driver script to create and train word embeddings of 
 	various dimension and window sizes so that they can be compared. 
