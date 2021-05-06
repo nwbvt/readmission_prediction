@@ -1,7 +1,16 @@
+'''
+	embedding_utils.py
+
+	This file contains utilities for working with word embeddings.
+
+	It contains functions to load, clean, and save data as well as
+	a variety of functions to build, train, save, and load Word2Vec
+	models. 
+'''
+
 import pandas as pd
 import re
 import nltk
-#from nltk.corpus import stopwords
 from gensim.models import Word2Vec
 from gensim.models import KeyedVectors
 from time import time
@@ -13,10 +22,13 @@ INPUT_DATA_FILE = "data/train.csv"
 CLEANED_TEXT_FILE = "embedding/cleaned_text.csv"
 MODEL_FILE = 'embedding/word2vec.model'
 WORD_VECTORS_FILE = 'embedding/word2vec.wordvectors'
-DOC_FILE = "data/full_document.txt"
 
 # Stopwords to omit from vocabulary  
-# using from nltk.corpus import stopwords caused performance issues
+# Includes words that make up the beginning of each discharge summary
+# These words are present in every note and most are labels to empty or 
+# cleansed fields providing no value to the word embedding. Other words
+# such as allergic, allergy, anaphylaxis, etc remain in the vocabulary
+# so no meaning or value is lost by removing these words.
 stopwords = ["date", "birth", "admission", "discharge", "sex", "age", "service", 
 		     "allergies", "patient", "attending", "name","myself", "our", "ours", 
 		     "ourselves", "you", "your", "yours", "yourself", "yourselves", "him", 
@@ -32,20 +44,25 @@ stopwords = ["date", "birth", "admission", "discharge", "sex", "age", "service",
 		     "own", "same", "than", "too", "very", "can", "will", "just", "should", "now"]
 
 
-def load_data(data_file=INPUT_DATA_FILE):
+def load_data(data_file=CLEANED_TEXT_FILE):
 	'''
 		Loads data from a csv file. This is inteded
 		 to load the MIMIC-III data and return the
-		 text portion.
+		 tokenized text portion.
 
 		Args:		data_file - The csv file to read in.
 		Returns:	The Text data contained in the data file.
 	'''
 
 	text = pd.read_csv(data_file, usecols=['TEXT'])
-	return text.TEXT
+	
+	corpus = []
+	for note in text.TEXT:
+		corpus.append(eval(note))
+	
+	return corpus
 
-def clean_data(input_text, output_file=CLEANED_TEXT_FILE):
+def clean_data(input_text=INPUT_DATA_FILE, output_file=CLEANED_TEXT_FILE):
 
 	'''
 		Cleans and prepares the text to generate a Word2Vec model.
@@ -93,18 +110,25 @@ def save_data(text_data, file=CLEANED_TEXT_FILE):
 	cleaned_series = pd.Series(text_data)
 	cleaned_series.to_csv(file)	
 
-def build_model(text_data, model_file=MODEL_FILE):
+def build_model(text_data, vector_size=100, window=5):
 	'''
 		Builds and saves a Word2Vec model from the input data.
 
 		Args: 	 text_data -  The input data from which to build the model.
-				 model_file - The path and filename of the saved model.
 		Returns: The constructed model.
 	'''
 
-	model = Word2Vec(sentences=text_data, vector_size=100, window=5, min_count=3, workers=4)
+	return Word2Vec(sentences=text_data, vector_size=vector_size, window=window, min_count=3, workers=1)
+
+def save_model(model, model_file):
+	'''
+		Saves the Word2Vec model to the the path specified in model_file.
+
+		Args:	model 		- The model to save
+				model_file 	- The file name and path to save the model.
+	'''
+
 	model.save(model_file)
-	return model
 
 def load_model(model=MODEL_FILE):
 	'''
@@ -146,16 +170,16 @@ def load_embedding(file=WORD_VECTORS_FILE):
 
 	return KeyedVectors.load(file, mmap='r')
 
-def print_vocab(model):
+def get_vocab(model):
 	'''
-		Prints the model's vocabulary size and words.
+		Returns the model's vocabulary.
 
-		Args:		model - The model whose vocabulary is to be printed.
-		Returns:	N/A
+		Args:		model - The model whose vocabulary is returned
+		Returns:	The vocabulary as a list of strings
 	'''
 
 	print('Vocab length = %d' % len(model.wv))
-	print(model.wv.key_to_index.keys())
+	return model.wv.key_to_index.keys()
 
 def show_plot(word_vec):
 	'''
@@ -181,40 +205,5 @@ def show_plot(word_vec):
 		if random.uniform(0,1) > 0.7:
 			plt.annotate(word, xy=(y[i, 0], y[i, 1]))
 	plt.show()
-
-if __name__ == '__main__':
-	'''
-		Calling this script runs the end-to-end process to train an embedding.
-
-		The following steps are taken:
-			1) Loads the MIMIC-III data from a csv file and extracts the text
-			2) Cleans the text data to prepare for model training and saves it
-			3) Builds and saves a Word2Vec model from the cleaned data
-			4) Trains the Word2Vec model to create and save an embedding
-
-	'''
-
-	print('Loading data')
-	text_data = load_data()
-	
-	t = time()
-	print('Data loaded and starting to clean text...')
-	text_data = clean_data(text_data)
-	print('Cleaning time: {} mins'.format(round((time() - t) / 60, 2)))
-
-	print('Starting to build model...')
-	t = time() 
-	model = build_model(text_data)
-	print('Model building time: {} mins'.format(round((time() - t) / 60, 2)))
-
-	print('Training model...')
-	t = time()
-	train_model(model, text_data)
-	print('Training time: {} mins'.format(round((time() - t) / 60, 2)))
-
-	# Store the words and their trained embeddings
-	save_embedding(model)
-	print('Completed...')
-
 
 	
