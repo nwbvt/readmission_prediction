@@ -1,5 +1,7 @@
 from math import floor
 import torch
+import random
+import numpy as np
 import torch.nn as nn
 from torch.nn.init import xavier_uniform_
 import torch.nn.functional as F
@@ -9,8 +11,9 @@ import time
 
 class ConvAttModel(nn.Module):
     
-    def __init__(self, vocab_size=1000, kernel_size=10, num_filter_maps=16, embed_size=100, dropout=0.5, embedding=None):
+    def __init__(self, vocab_size=1000, kernel_size=10, num_filter_maps=16, embed_size=100, dropout=0.5, embedding=None, seed=19820618):
         super(ConvAttModel, self).__init__()
+        set_seed(seed)
         self.embed_size = embed_size
         self.embed_drop = nn.Dropout(p=dropout)
         
@@ -45,8 +48,7 @@ class ConvAttModel(nn.Module):
         y = torch.sigmoid(self.final(v)).squeeze()
         return y, attention
         
-        
-def eval(model, data, max_batches=0):
+def predict(model, data, max_batches=0):
     model.eval()
     y_pred = torch.LongTensor()
     y_true = torch.LongTensor()
@@ -56,11 +58,17 @@ def eval(model, data, max_batches=0):
         y_hat, attention = model(x)
         y_pred = torch.cat((y_pred, y_hat.detach().to('cpu')), dim=0)
         y_true = torch.cat((y_true, y.detach().to('cpu')), dim=0)
+    return y_true, y_pred
+
+
+def eval(model, data, max_batches=0):
+    y_true, y_pred = predict(model, data, max_batches)
     return average_precision_score(y_true, y_pred)
 
 
-def train(model, train_data, test_data, n_epochs):
-    optimizer = optim.Adam(model.parameters(), lr=0.001)
+def train(model, train_data, test_data, n_epochs, lr=0.001, weight_decay=0, seed=19820618):
+    set_seed(seed)
+    optimizer = optim.Adam(model.parameters(), lr=lr, weight_decay=weight_decay)
     criterion = nn.BCELoss()
     for epoch in range(n_epochs):
         start_time = time.time()
@@ -83,3 +91,8 @@ def train(model, train_data, test_data, n_epochs):
         print(f"Epoch {epoch}\tTraining Loss: {train_loss:.6f}" + 
               f"\tTrain APS: {train_aps:.6f}\tTest APS: {test_aps:.6f}" +
               f"\tTime Taken: {end_time-start_time:.2f} seconds")
+
+def set_seed(seed):
+    torch.manual_seed(seed)
+    random.seed(seed)
+    np.random.seed(seed)

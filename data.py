@@ -23,10 +23,11 @@ def clean(line):
 class MIMICNotes(Dataset):
     """Dataset for mimic notes"""
     
-    def __init__(self, data, readmit_cutoff = 30, encoding=None, vocab=None):
+    def __init__(self, data, readmit_cutoff = 30, encoding=None, vocab=None, vocab_size=None):
         assert encoding or vocab
         self.data = data
         self.encoding = encoding or vocab.get
+        self.vocab_size=vocab_size or len(vocab)
         self.labels = data.DAYS_TO_READMIT < readmit_cutoff
     
     def __len__(self):
@@ -47,17 +48,22 @@ def load_dataset(filename=f"{OUTLOC}/train.csv", df=None, readmit_cutoff=30,
         df = df.sample(frac=sample)
     if encoding is None and vocab is None:
         vocab = get_vocab(df.TEXT, vocab_size)
+        vocab_size = len(vocab)
     if split is not None:
         train, test = train_test_split(df, test_size=split, random_state=random_state)
-        return MIMICNotes(train, readmit_cutoff, encoding, vocab), MIMICNotes(test, readmit_cutoff, encoding, vocab)
+        return MIMICNotes(train, readmit_cutoff, encoding, vocab, vocab_size=vocab_size), MIMICNotes(test, readmit_cutoff, encoding, vocab, vocab_size=vocab_size)
     else:
-        return MIMICNotes(df, readmit_cutoff, encoding, vocab)
+        return MIMICNotes(df, readmit_cutoff, encoding, vocab, vocab_size=vocab_size)
 
 def get_vocab(text_data, vocab_size=1000):
     split = text_data.str.split()
-    vocab = Counter([word.lower() for line in split for word in line])
-    words = vocab.most_common(vocab_size)
-    return {word: i for i, (word, count) in enumerate(words)}
+    if vocab_size > 0:
+        vocab = Counter([word.lower() for line in split for word in line])
+        words = vocab.most_common(vocab_size)
+        return {word: i for i, (word, count) in enumerate(words)}
+    else:
+        words = {word.lower() for line in split for word in line}
+        return {word: i for i, word in enumerate(words)}
 
 def one_hot_encoder(vocab):
     n = len(vocab)
