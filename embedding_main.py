@@ -29,7 +29,15 @@ WINDOWS = ['1', '5', '10']
 NUM_EPOCHS = 5
 
 def trainModel(num_epochs, embedding):
-	
+	'''
+		Trains the attention model for the specified number of epochs
+		using the specified embedding.
+
+		Arguments:
+			num_epochs: The number of training epochs
+			embedding:  The embedding to use for training
+	'''
+
 	vocab_size, embed_size = embedding.vectors.shape
 	
 	train_ds = data.load_dataset("data/train.csv", encoding=embedding.key_to_index.get)
@@ -86,13 +94,13 @@ def trainModelWithEmbeddings(dimensions=DIMENSIONS, windows=WINDOWS, epochs=NUM_
 
 	for dim in dimensions:
 		for win in windows:
-			embedding_file = 'embedding/compare/word2vec_{}d_{}win.wordvectors'.format(dim, win)
+			embedding_file = 'embedding/word2vec_{}d_{}win.wordvectors'.format(dim, win)
 			print('\nTraining attention model with embedding for %s dimensions, %s window size' % (dim, win), file=sys.stderr)
 			embedding = em.load_embedding(embedding_file)
 			trainModel(epochs, embedding)
 
 if __name__ == '__main__':
 	
-	createEmbeddings()
-	trainModelWithEmbeddings()
+	#createEmbeddings()
+	trainModelWithEmbeddings(dimensions=['250'], windows=['1'], epochs=20)
 
