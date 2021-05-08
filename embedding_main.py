@@ -21,7 +21,6 @@ import model as md
 import embedding_utils as em
 import pandas as pd
 
-
 os.environ['PYTHONHASHSEED'] = '1313'
 
 DIMENSIONS = ['50', '100', '250', '500']
@@ -101,6 +100,8 @@ def trainModelWithEmbeddings(dimensions=DIMENSIONS, windows=WINDOWS, epochs=NUM_
 
 if __name__ == '__main__':
 	
-	#createEmbeddings()
-	trainModelWithEmbeddings(dimensions=['250'], windows=['1'], epochs=20)
+	# Note that this will create and train all 12 word embeddings
+	# and train the attention model for 5 epochs each 
+	createEmbeddings()
+	trainModelWithEmbeddings()
 
