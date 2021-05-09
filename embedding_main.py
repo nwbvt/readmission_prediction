@@ -88,9 +88,6 @@ def trainModelWithEmbeddings(dimensions=DIMENSIONS, windows=WINDOWS, epochs=NUM_
 			epochs: The number of epoch to train the model
 	'''
 
-	print('\nLoading data', file=sys.stderr)
-	text_data = em.load_data(em.CLEANED_TEXT_FILE)
-
 	for dim in dimensions:
 		for win in windows:
 			embedding_file = 'embedding/word2vec_{}d_{}win.wordvectors'.format(dim, win)
@@ -98,6 +95,28 @@ def trainModelWithEmbeddings(dimensions=DIMENSIONS, windows=WINDOWS, epochs=NUM_
 			embedding = em.load_embedding(embedding_file)
 			trainModel(epochs, embedding)
 
+def trainWithBaselineEmbedding(enum_epochs):
+	'''
+		Helper function to train the attention model with 
+		the baseline embedding for the number of epochs.
+
+		Arguments:
+			num_epochs 	- The number of epochs to train
+	'''
+	embedding = em.load_embedding('embedding/word2vec.wordvectors')
+	trainModel(enum_epochs, embedding)
+	
+def trainWithBestEmbedding(enum_epochs):
+	'''
+		Helper function to train the attention model with 
+		the top performing embedding for the number of epochs.
+
+		Arguments:
+			num_epochs	- The number of epochs to train
+	'''
+	embedding = em.load_embedding('embedding/word2vec_250d_1win.wordvectors')
+	trainModel(enum_epochs, embedding)
+	
 if __name__ == '__main__':
 	
 	# Note that this will create and train all 12 word embeddings

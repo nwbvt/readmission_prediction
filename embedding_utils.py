@@ -168,7 +168,7 @@ def load_embedding(file=WORD_VECTORS_FILE):
 		Returns:	The loaded embedding.
 	'''
 
-	return KeyedVectors.load(file, mmap='r')
+	return KeyedVectors.load(file)
 
 def get_vocab(model):
 	'''
