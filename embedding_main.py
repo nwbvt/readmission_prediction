@@ -114,6 +114,7 @@ def trainWithBestEmbedding(enum_epochs):
 		Arguments:
 			num_epochs	- The number of epochs to train
 	'''
+	print('\nTraining attention model with top performing word embedding.', file=sys.stderr)
 	embedding = em.load_embedding('embedding/word2vec_250d_1win.wordvectors')
 	trainModel(enum_epochs, embedding)
 	
@@ -123,4 +124,3 @@ if __name__ == '__main__':
 	# and train the attention model for 5 epochs each 
 	createEmbeddings()
 	trainModelWithEmbeddings()
-
